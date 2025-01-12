@@ -14,9 +14,20 @@ const ProductCategoryRoute_1 = __importDefault(require("./prisma/Routes/ProductC
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-// Configuración de CORS
+const allowedOrigins = [
+    'http://localhost:5173', // Dominio en desarrollo
+    'https://ambersdesings-production.up.railway.app', // Dominio en producción
+];
 app.use((0, cors_1.default)({
-    origin: 'http://localhost:5173', // Dominio del cliente
+    origin: (origin, callback) => {
+        // Permite solicitudes sin origen (por ejemplo, en herramientas como Postman)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos permitidos
     allowedHeaders: ['Content-Type', 'Authorization'], // Encabezados permitidos
 }));
