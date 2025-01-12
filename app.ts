@@ -13,15 +13,25 @@ dotenv.config();
 const app: Application = express();
 app.use(express.json());
 
-// Configuración de CORS
+const allowedOrigins = [
+  'http://localhost:5173', // Dominio en desarrollo
+  'https://ambersdesings-production.up.railway.app', // Dominio en producción
+];
+
 app.use(
   cors({
-    origin: 'http://localhost:5173', // Dominio del cliente
+    origin: (origin, callback) => {
+      // Permite solicitudes sin origen (por ejemplo, en herramientas como Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos permitidos
     allowedHeaders: ['Content-Type', 'Authorization'], // Encabezados permitidos
   })
 );
-
 // Configuración de rutas
 app.use('/api/categorias', categoryRoutes);
 app.use('/api/productos', productsRoutes);
