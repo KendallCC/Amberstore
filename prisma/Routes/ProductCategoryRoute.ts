@@ -6,4 +6,5 @@ const router = Router();
 router.get('/', createProductCategory);
 router.post('/', getProductCategory);
 
+
 export default router;

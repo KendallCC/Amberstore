@@ -1,6 +1,6 @@
 // controllers/productosController.ts
 import { PrismaClient } from '@prisma/client';
-import { log } from 'console';
+
 import { Request, Response } from 'express';
 
 const prisma = new PrismaClient();
@@ -31,7 +31,7 @@ export const getProductById = async (req: Request, res: Response) => {
   try {
     // Validar que el ID es un número válido
     if (!id || isNaN(Number(id))) {
-      return res.status(400).json({ message: "El ID del producto es inválido" });
+       res.status(400).json({ message: "El ID del producto es inválido" });
     }
 
     const producto = await prisma.producto.findUnique({
@@ -47,7 +47,7 @@ export const getProductById = async (req: Request, res: Response) => {
     });
 
     if (!producto) {
-      return res.status(404).json({ message: "Producto no encontrado" });
+      res.status(404).json({ message: "Producto no encontrado" });
     }
 
     res.json(producto);
@@ -65,7 +65,7 @@ export const getProductsbyCategory = async (req: Request, res: Response) => {
   try {
     // Validar que el ID de la categoría es un número
     if (!categoriaId || isNaN(Number(categoriaId))) {
-      return res.status(400).json({ message: "El ID de la categoría es inválido" });
+      res.status(400).json({ message: "El ID de la categoría es inválido" });
     }
 
     const productos = await prisma.producto.findMany({
@@ -85,13 +85,13 @@ export const getProductsbyCategory = async (req: Request, res: Response) => {
     });
 
     if (productos.length === 0) {
-      return res.status(404).json({ message: "No se encontraron productos para esta categoría" });
+       res.status(404).json({ message: "No se encontraron productos para esta categoría" });
     }
 
-    return res.json(productos);
+     res.json(productos);
   } catch (error) {
     console.error("Error al obtener productos por categoría:", error);
-    return res.status(500).json({ message: "Error interno del servidor" });
+    res.status(500).json({ message: "Error interno del servidor" });
   }
 };
 
@@ -158,7 +158,7 @@ export const updateProduct = async (req: Request, res: Response) => {
   try {
     // Validar que el ID es un número válido
     if (!id || isNaN(Number(id))) {
-      return res.status(400).json({ message: "El ID del producto es inválido" });
+      res.status(400).json({ message: "El ID del producto es inválido" });
     }
 
     // Actualizar el producto
@@ -205,7 +205,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
   try {
     // Validar que el ID es un número válido
     if (!id || isNaN(Number(id))) {
-      return res.status(400).json({ message: "El ID del producto es inválido" });
+       res.status(400).json({ message: "El ID del producto es inválido" });
     }
 
     // Verificar si el producto existe antes de eliminarlo
@@ -214,7 +214,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     });
 
     if (!productoExistente) {
-      return res.status(404).json({ message: "Producto no encontrado" });
+       res.status(404).json({ message: "Producto no encontrado" });
     }
 
     // Eliminar el producto

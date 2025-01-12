@@ -1,6 +1,7 @@
 import { getProducts,createProduct, getProductsbyCategory, updateProduct, deleteProduct, getProductById } from '../Controllers/Product';
 
 import { Router } from 'express';
+
 const ProductRouter = Router();
 
 ProductRouter.get('/categoria/:categoriaId', getProductsbyCategory);
