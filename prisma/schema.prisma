@@ -23,8 +23,9 @@ model Categoria {
 model Producto {
   id          Int      @id @default(autoincrement())
   nombre      String   @db.VarChar(100)
-  descripcion String?
+  descripcion String?  @db.Text
   precio      Float
+  codigo      String?  @db.VarChar(50) // Código opcional con longitud máxima de 50 caracteres
   imagenes    Imagen[]
   categorias  ProductoCategoria[]
 }
