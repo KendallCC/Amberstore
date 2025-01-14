@@ -1,5 +1,6 @@
 // controllers/productosController.ts
 import { PrismaClient } from '@prisma/client';
+import { log } from 'console';
 import { Request, Response } from 'express';
 
 const prisma = new PrismaClient();
@@ -91,6 +92,7 @@ export const getProductsbyCategory = async (req: Request, res: Response) => {
 export const createProduct = async (req: Request, res: Response) => {
   try {
     const { nombre, descripcion, precio, codigo, imagenes, categorias } = req.body;
+    
 
     const imagenesLimpias = imagenes.map((imagen: { urlImagen: string }) => ({
       urlImagen: imagen.urlImagen,
