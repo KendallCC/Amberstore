@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductsbyCategory = exports.getProductById = exports.getProducts = void 0;
+exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductsbyCategory = exports.getProductById = exports.getProductsPaginated = exports.getProducts = void 0;
 // controllers/productosController.ts
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
@@ -32,6 +32,38 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.getProducts = getProducts;
+const getProductsPaginated = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page = 1, limit = 8 } = req.query; // Parámetros de paginación con valores por defecto
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    try {
+        // Obtener los productos con paginación
+        const productos = yield prisma.producto.findMany({
+            skip: (pageNumber - 1) * limitNumber, // Saltar registros según la página actual
+            take: limitNumber, // Número de registros a devolver
+            include: {
+                imagenes: true, // Incluye imágenes asociadas
+                categorias: {
+                    include: {
+                        categoria: true, // Incluye detalles de las categorías asociadas
+                    },
+                },
+            },
+        });
+        // Contar el total de productos
+        const totalProductos = yield prisma.producto.count();
+        res.json({
+            productos, // Productos de la página actual
+            totalProductos, // Total de productos en la base de datos
+            totalPages: Math.ceil(totalProductos / limitNumber), // Número total de páginas
+        });
+    }
+    catch (error) {
+        console.error("Error al obtener productos paginados:", error);
+        res.status(500).json({ message: "Error al obtener productos paginados", error });
+    }
+});
+exports.getProductsPaginated = getProductsPaginated;
 const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     try {

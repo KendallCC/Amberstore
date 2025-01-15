@@ -1,9 +1,9 @@
-import { getProducts,createProduct, getProductsbyCategory, updateProduct, deleteProduct, getProductById } from '../Controllers/Product';
+import { getProducts,createProduct, getProductsbyCategory, updateProduct, deleteProduct, getProductById, getProductsPaginated } from '../Controllers/Product';
 
 import { Router } from 'express';
 
 const ProductRouter = Router();
-
+ProductRouter.get('/paginados', getProductsPaginated);
 ProductRouter.get('/categoria/:categoriaId', getProductsbyCategory);
 ProductRouter.get('/', getProducts);
 ProductRouter.get('/:id', getProductById);

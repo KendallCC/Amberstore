@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Product_1 = require("../Controllers/Product");
 const express_1 = require("express");
 const ProductRouter = (0, express_1.Router)();
+ProductRouter.get('/paginados', Product_1.getProductsPaginated);
 ProductRouter.get('/categoria/:categoriaId', Product_1.getProductsbyCategory);
 ProductRouter.get('/', Product_1.getProducts);
 ProductRouter.get('/:id', Product_1.getProductById);
