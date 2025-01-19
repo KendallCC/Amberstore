@@ -127,6 +127,58 @@ export const getProductsbyCategory = async (req: Request, res: Response) => {
   }
 };
 
+
+export const getPaginatedProductsByCategory = async (req: Request, res: Response) => {
+  const { categoriaId } = req.params;
+  const { page = 1, limit = 8 } = req.query;
+
+  const pageNumber = parseInt(page as string, 10);
+  const limitNumber = parseInt(limit as string, 10);
+
+  try {
+    if (!categoriaId || isNaN(Number(categoriaId))) {
+       res.status(400).json({ message: "El ID de la categoría es inválido" });
+    }
+
+    // Obtener productos con paginación
+    const productos = await prisma.producto.findMany({
+      where: {
+        categorias: {
+          some: { categoriaId: parseInt(categoriaId, 10) },
+        },
+      },
+      skip: (pageNumber - 1) * limitNumber,
+      take: limitNumber,
+      include: {
+        imagenes: true,
+        categorias: { include: { categoria: true } },
+      },
+    });
+
+    // Contar el total de productos para esa categoría
+    const totalProductos = await prisma.producto.count({
+      where: {
+        categorias: {
+          some: { categoriaId: parseInt(categoriaId, 10) },
+        },
+      },
+    });
+
+    res.json({
+      productos,
+      totalProductos,
+      totalPages: Math.ceil(totalProductos / limitNumber),
+    });
+  } catch (error) {
+    console.error("Error al obtener productos por categoría paginados:", error);
+    res.status(500).json({ message: "Error al obtener productos paginados", error });
+  }
+};
+
+
+
+
+
 export const createProduct = async (req: Request, res: Response) => {
   try {
     const { nombre, descripcion, precio, codigo, imagenes, categorias } = req.body;

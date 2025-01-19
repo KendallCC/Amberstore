@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductsbyCategory = exports.getProductById = exports.getProductsPaginated = exports.getProducts = void 0;
+exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getPaginatedProductsByCategory = exports.getProductsbyCategory = exports.getProductById = exports.getProductsPaginated = exports.getProducts = void 0;
 // controllers/productosController.ts
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
@@ -124,6 +124,49 @@ const getProductsbyCategory = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.getProductsbyCategory = getProductsbyCategory;
+const getPaginatedProductsByCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { categoriaId } = req.params;
+    const { page = 1, limit = 8 } = req.query;
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    try {
+        if (!categoriaId || isNaN(Number(categoriaId))) {
+            res.status(400).json({ message: "El ID de la categoría es inválido" });
+        }
+        // Obtener productos con paginación
+        const productos = yield prisma.producto.findMany({
+            where: {
+                categorias: {
+                    some: { categoriaId: parseInt(categoriaId, 10) },
+                },
+            },
+            skip: (pageNumber - 1) * limitNumber,
+            take: limitNumber,
+            include: {
+                imagenes: true,
+                categorias: { include: { categoria: true } },
+            },
+        });
+        // Contar el total de productos para esa categoría
+        const totalProductos = yield prisma.producto.count({
+            where: {
+                categorias: {
+                    some: { categoriaId: parseInt(categoriaId, 10) },
+                },
+            },
+        });
+        res.json({
+            productos,
+            totalProductos,
+            totalPages: Math.ceil(totalProductos / limitNumber),
+        });
+    }
+    catch (error) {
+        console.error("Error al obtener productos por categoría paginados:", error);
+        res.status(500).json({ message: "Error al obtener productos paginados", error });
+    }
+});
+exports.getPaginatedProductsByCategory = getPaginatedProductsByCategory;
 const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { nombre, descripcion, precio, codigo, imagenes, categorias } = req.body;
