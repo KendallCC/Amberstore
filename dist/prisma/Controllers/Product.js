@@ -14,21 +14,46 @@ exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page = 1, limit = 10, search = "", categoriaId } = req.query;
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const searchQuery = search.toString();
     try {
+        // Generar las condiciones dinámicas para el filtro
+        const whereClause = {
+            OR: [
+                { nombre: { contains: searchQuery } },
+                { codigo: { contains: searchQuery } },
+            ],
+        };
+        if (categoriaId) {
+            whereClause.categorias = {
+                some: { categoriaId: parseInt(categoriaId, 10) },
+            };
+        }
+        // Obtener los productos con paginación y búsqueda
         const productos = yield prisma.producto.findMany({
+            where: whereClause,
+            skip: (pageNumber - 1) * limitNumber,
+            take: limitNumber,
             include: {
-                imagenes: true, // Incluye todas las imágenes asociadas al producto
+                imagenes: true,
                 categorias: {
-                    include: {
-                        categoria: true, // Incluye los detalles de cada categoría asociada
-                    },
+                    include: { categoria: true },
                 },
             },
         });
-        res.json(productos);
+        // Contar el total de productos
+        const totalProductos = yield prisma.producto.count({ where: whereClause });
+        res.json({
+            productos,
+            totalProductos,
+            totalPages: Math.ceil(totalProductos / limitNumber),
+        });
     }
     catch (error) {
-        res.status(500).json({ message: 'Error al obtener los productos', error });
+        console.error("Error al obtener productos:", error);
+        res.status(500).json({ message: "Error al obtener productos", error });
     }
 });
 exports.getProducts = getProducts;
