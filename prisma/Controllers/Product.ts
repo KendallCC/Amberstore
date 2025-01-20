@@ -6,22 +6,56 @@ import { Request, Response } from 'express';
 const prisma = new PrismaClient();
 
 export const getProducts = async (req: Request, res: Response) => {
+  const { page = 1, limit = 10, search = "", categoriaId } = req.query;
+
+  const pageNumber = parseInt(page as string, 10);
+  const limitNumber = parseInt(limit as string, 10);
+  const searchQuery = search.toString();
+
   try {
+    // Generar las condiciones dinámicas para el filtro
+    const whereClause: any = {
+      OR: [
+        { nombre: { contains: searchQuery } },
+        { codigo: { contains: searchQuery } },
+      ],
+    };
+
+    if (categoriaId) {
+      whereClause.categorias = {
+        some: { categoriaId: parseInt(categoriaId as string, 10) },
+      };
+    }
+
+    // Obtener los productos con paginación y búsqueda
     const productos = await prisma.producto.findMany({
+      where: whereClause,
+      skip: (pageNumber - 1) * limitNumber,
+      take: limitNumber,
       include: {
-        imagenes: true, // Incluye todas las imágenes asociadas al producto
+        imagenes: true,
         categorias: {
-          include: {
-            categoria: true, // Incluye los detalles de cada categoría asociada
-          },
+          include: { categoria: true },
         },
       },
     });
-    res.json(productos);
+
+    // Contar el total de productos
+    const totalProductos = await prisma.producto.count({ where: whereClause });
+
+    res.json({
+      productos,
+      totalProductos,
+      totalPages: Math.ceil(totalProductos / limitNumber),
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener los productos', error });
+    console.error("Error al obtener productos:", error);
+    res.status(500).json({ message: "Error al obtener productos", error });
   }
 };
+
+
+
 
 
 export const getProductsPaginated = async (req: Request, res: Response) => {
