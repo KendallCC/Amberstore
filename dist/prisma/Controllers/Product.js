@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getPaginatedProductsByCategory = exports.getProductsbyCategory = exports.getProductById = exports.getProductsPaginated = exports.getProducts = void 0;
 // controllers/productosController.ts
 const client_1 = require("@prisma/client");
+const app_1 = require("../../app");
 const prisma = new client_1.PrismaClient();
 const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { page = 1, limit = 10, search = "", categoriaId } = req.query;
@@ -194,43 +195,49 @@ const getPaginatedProductsByCategory = (req, res) => __awaiter(void 0, void 0, v
 exports.getPaginatedProductsByCategory = getPaginatedProductsByCategory;
 const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { nombre, descripcion, precio, codigo, imagenes, categorias } = req.body;
-        const imagenesLimpias = imagenes.map((imagen) => ({
-            urlImagen: imagen.urlImagen,
-        }));
+        const { nombre, descripcion, precio, codigo, imagenes, categorias, socketId } = req.body;
         const producto = yield prisma.producto.create({
             data: {
                 nombre,
                 descripcion,
                 precio,
-                codigo, // Incluye el código opcional
-                imagenes: {
-                    create: imagenesLimpias,
-                },
+                codigo,
+                imagenes: { create: imagenes.map((img) => ({ urlImagen: img.urlImagen })) },
                 categorias: {
-                    create: categorias.map((categoria) => ({
-                        categoria: {
-                            connect: { id: categoria.categoriaId },
-                        },
+                    create: categorias.map((cat) => ({
+                        categoria: { connect: { id: cat.categoriaId } },
                     })),
                 },
             },
-            include: {
-                imagenes: true,
-                categorias: true,
-            },
+            include: { imagenes: true, categorias: { include: { categoria: true } } },
         });
+        // console.log(`Nuevo producto creado: ${producto.nombre}`);
+        if (socketId) {
+            // Enviar confirmación solo al emisor
+            app_1.io.to(socketId).emit("producto_creado_confirmacion", producto);
+            const senderSocket = app_1.io.sockets.sockets.get(socketId);
+            if (senderSocket) {
+                // Usamos broadcast para enviar el evento a TODOS en la sala "producto_table" EXCEPTO al emisor
+                senderSocket.broadcast.to("producto_table").emit("producto_creado", producto);
+            }
+            else {
+                app_1.io.to("producto_table").emit("producto_creado", producto);
+            }
+        }
+        else {
+            app_1.io.to("producto_table").emit("producto_creado", producto);
+        }
         res.json(producto);
     }
     catch (error) {
-        console.error("Error al crear el producto:", error);
-        res.status(500).json({ message: 'Error al crear el producto', error });
+        console.error("Error al crear producto:", error);
+        res.status(500).json({ message: "Error al crear producto", error });
     }
 });
 exports.createProduct = createProduct;
 const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { nombre, descripcion, precio, codigo, imagenes, categorias } = req.body;
+    const { nombre, descripcion, precio, codigo, imagenes, categorias, socketId } = req.body;
     try {
         if (!id || isNaN(Number(id))) {
             res.status(400).json({ message: "El ID del producto es inválido" });
@@ -241,37 +248,59 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 nombre,
                 descripcion,
                 precio,
-                codigo, // Actualiza el código opcional
+                codigo,
                 imagenes: {
                     deleteMany: {},
-                    create: imagenes.map((imagen) => ({
-                        urlImagen: imagen.urlImagen,
-                    })),
+                    create: imagenes.map((img) => ({ urlImagen: img.urlImagen })),
                 },
                 categorias: {
                     deleteMany: {},
-                    create: categorias.map((categoria) => ({
-                        categoria: {
-                            connect: { id: categoria.categoriaId },
-                        },
+                    create: categorias.map((cat) => ({
+                        categoria: { connect: { id: cat.categoriaId } },
                     })),
                 },
             },
-            include: {
-                imagenes: true,
-                categorias: true,
-            },
+            include: { imagenes: true, categorias: { include: { categoria: true } } },
         });
+        // console.log(`✅ Producto actualizado: ${productoActualizado.nombre}`);
+        // Enviar confirmación al emisor
+        if (socketId) {
+            app_1.io.to(socketId).emit("producto_actualizado_confirmacion", {
+                id: productoActualizado.id,
+                producto: productoActualizado,
+            });
+            // Obtener el socket del emisor y emitir a la sala "producto_table" a los demás
+            const senderSocket = app_1.io.sockets.sockets.get(socketId);
+            if (senderSocket) {
+                senderSocket.broadcast.to("producto_table").emit("producto_actualizado", {
+                    id: productoActualizado.id,
+                    producto: productoActualizado,
+                });
+            }
+            else {
+                app_1.io.to("producto_table").emit("producto_actualizado", {
+                    id: productoActualizado.id,
+                    producto: productoActualizado,
+                });
+            }
+        }
+        else {
+            app_1.io.to("producto_table").emit("producto_actualizado", {
+                id: productoActualizado.id,
+                producto: productoActualizado,
+            });
+        }
         res.json(productoActualizado);
     }
     catch (error) {
-        console.error("Error al actualizar el producto:", error);
+        // console.error("❌ Error al actualizar el producto:", error);
         res.status(500).json({ message: "Error interno del servidor", error });
     }
 });
 exports.updateProduct = updateProduct;
 const deleteProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const { socketId } = req.body;
     try {
         if (!id || isNaN(Number(id))) {
             res.status(400).json({ message: "El ID del producto es inválido" });
@@ -285,10 +314,25 @@ const deleteProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         yield prisma.producto.delete({
             where: { id: parseInt(id, 10) },
         });
+        // console.log(`🗑️ Producto eliminado: ${productoExistente.nombre}`);
+        // Enviar confirmación solo al emisor y notificar a los demás en la sala "producto_table"
+        if (socketId) {
+            app_1.io.to(socketId).emit("producto_eliminado_confirmacion", { id: parseInt(id, 10) });
+            const senderSocket = app_1.io.sockets.sockets.get(socketId);
+            if (senderSocket) {
+                senderSocket.broadcast.to("producto_table").emit("producto_eliminado", { id: parseInt(id, 10) });
+            }
+            else {
+                app_1.io.to("producto_table").emit("producto_eliminado", { id: parseInt(id, 10) });
+            }
+        }
+        else {
+            app_1.io.to("producto_table").emit("producto_eliminado", { id: parseInt(id, 10) });
+        }
         res.json({ message: "Producto eliminado exitosamente" });
     }
     catch (error) {
-        console.error("Error al eliminar el producto:", error);
+        console.error("❌ Error al eliminar el producto:", error);
         res.status(500).json({ message: "Error interno del servidor", error });
     }
 });

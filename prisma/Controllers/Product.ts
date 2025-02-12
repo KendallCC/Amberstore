@@ -261,7 +261,7 @@ export const updateProduct = async (req: Request, res: Response) => {
 
   try {
     if (!id || isNaN(Number(id))) {
-      return res.status(400).json({ message: "El ID del producto es inválido" });
+     res.status(400).json({ message: "El ID del producto es inválido" });
     }
 
     const productoActualizado = await prisma.producto.update({
@@ -327,7 +327,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
   try {
     if (!id || isNaN(Number(id))) {
-      return res.status(400).json({ message: "El ID del producto es inválido" });
+       res.status(400).json({ message: "El ID del producto es inválido" });
     }
 
     const productoExistente = await prisma.producto.findUnique({
@@ -335,7 +335,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     });
 
     if (!productoExistente) {
-      return res.status(404).json({ message: "Producto no encontrado" });
+       res.status(404).json({ message: "Producto no encontrado" });
     }
 
     await prisma.producto.delete({
